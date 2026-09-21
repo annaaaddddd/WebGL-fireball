@@ -8,6 +8,8 @@ precision highp float;
 uniform vec4 u_Color;  // Unused by the fireball themes; kept so the renderer's
                        // setGeometryColor call still has a matching uniform.
 uniform float u_Time;
+uniform float u_Speed; // Global animation speed multiplier (shared with the vertex shader)
+uniform float u_Heat;  // Bias amount: low = small hot core, high = white-hot ball
 uniform int u_Theme;   // 0 = hand-tuned fire gradient, 1+ = cosine palettes
 
 in vec4 fs_Nor;
@@ -57,12 +59,13 @@ void main()
 
     // Time flicker: a small displacement-phased shimmer so the color animates
     // independently of the geometry. Keeps the frag shader time-driven.
-    t += 0.04 * sin(u_Time * 2.0 + fs_Displacement * 8.0);
+    // (6.7 * default speed 0.3 ~= the original hardcoded flicker rate of 2.0)
+    t += 0.04 * sin(u_Time * u_Speed * 6.7 + fs_Displacement * 8.0);
     t = clamp(t, 0.0, 1.0);
 
     // Reshape the ramp: darken midtones so the bright core stays concentrated
     // at the tips instead of washing over the whole surface.
-    t = bias(0.35, t);
+    t = bias(u_Heat, t);
 
     vec3 col;
     if (u_Theme == 1) {

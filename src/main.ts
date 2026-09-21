@@ -11,17 +11,27 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 import lambertVertSource from './shaders/lambert-vert.glsl?raw';
 import lambertFragSource from './shaders/lambert-frag.glsl?raw';
 
+// The art-directed default look; the reset button restores these.
+const defaults = {
+  tesselations: 6,
+  theme: 0,
+  wobble: 0.3,
+  noiseAmount: 0.15,
+  noiseScale: 5.0,
+  heat: 0.35,
+  speed: 0.3,
+};
+
 // Define an object with application parameters and button callbacks
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
-  tesselations: 5,
-  theme: 0,
-  'Load Scene': loadScene, // A function pointer, essentially
+  ...defaults,
+  'Reset to Default': () => { Object.assign(controls, defaults); },
 };
 
 let icosphere: Icosphere;
 let square: Square;
-let prevTesselations: number = 5;
+let prevTesselations: number = defaults.tesselations;
 
 function loadScene() {
   icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
@@ -39,11 +49,27 @@ function main() {
   stats.domElement.style.top = '0px';
   document.body.appendChild(stats.domElement);
 
-  // Add controls to the gui
+  // Add controls to the gui. Every control is .listen()-ed so the reset
+  // button's Object.assign is reflected in the UI automatically.
   const gui = new DAT.GUI();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
-  gui.add(controls, 'theme', { Fire: 0, Ghostfire: 1, Toxic: 2, Cosmic: 3 });
-  gui.add(controls, 'Load Scene');
+
+  const shapeFolder = gui.addFolder('Shape');
+  shapeFolder.add(controls, 'wobble', 0, 0.6).name('Wobble').listen();
+  shapeFolder.add(controls, 'noiseAmount', 0, 0.5).name('Noise Amount').listen();
+  shapeFolder.add(controls, 'noiseScale', 1, 12).name('Noise Scale').listen();
+  shapeFolder.open();
+
+  const appearanceFolder = gui.addFolder('Appearance');
+  appearanceFolder.add(controls, 'theme', { Fire: 0, Ghostfire: 1, Toxic: 2, Cosmic: 3 })
+      .name('Theme').listen();
+  appearanceFolder.add(controls, 'heat', 0.15, 0.65).name('Heat').listen();
+  appearanceFolder.open();
+
+  const motionFolder = gui.addFolder('Motion');
+  motionFolder.add(controls, 'speed', 0, 1).name('Speed').listen();
+
+  gui.add(controls, 'tesselations', 0, 8).step(1).name('Mesh Detail').listen();
+  gui.add(controls, 'Reset to Default').name('Click to Reset');
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -76,6 +102,11 @@ function main() {
     // dat.GUI dropdowns store their value as a string once the user picks an
     // option, so coerce back to a number before uploading the uniform.
     lambert.setTheme(Number(controls.theme));
+    lambert.setSpeed(controls.speed);
+    lambert.setWobble(controls.wobble);
+    lambert.setFbmAmp(controls.noiseAmount);
+    lambert.setFbmFreq(controls.noiseScale);
+    lambert.setHeat(controls.heat);
     camera.update();
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);

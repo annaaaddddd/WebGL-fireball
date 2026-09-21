@@ -31,6 +31,11 @@ class ShaderProgram {
   unifColor: WebGLUniformLocation;
   unifTime:  WebGLUniformLocation;
   unifTheme: WebGLUniformLocation;
+  unifSpeed: WebGLUniformLocation;
+  unifWobble: WebGLUniformLocation;
+  unifFbmAmp: WebGLUniformLocation;
+  unifFbmFreq: WebGLUniformLocation;
+  unifHeat: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -52,6 +57,11 @@ class ShaderProgram {
     this.unifColor      = gl.getUniformLocation(this.prog, "u_Color");
     this.unifTime       = gl.getUniformLocation(this.prog, "u_Time");
     this.unifTheme      = gl.getUniformLocation(this.prog, "u_Theme");
+    this.unifSpeed      = gl.getUniformLocation(this.prog, "u_Speed");
+    this.unifWobble     = gl.getUniformLocation(this.prog, "u_Wobble");
+    this.unifFbmAmp     = gl.getUniformLocation(this.prog, "u_FbmAmp");
+    this.unifFbmFreq    = gl.getUniformLocation(this.prog, "u_FbmFreq");
+    this.unifHeat       = gl.getUniformLocation(this.prog, "u_Heat");
   }
 
   use() {
@@ -100,6 +110,41 @@ class ShaderProgram {
     this.use();
     if (this.unifTheme !== -1) {
       gl.uniform1i(this.unifTheme, theme);
+    }
+  }
+
+  setSpeed(speed: number) {
+    this.use();
+    if (this.unifSpeed !== -1) {
+      gl.uniform1f(this.unifSpeed, speed);
+    }
+  }
+
+  setWobble(wobble: number) {
+    this.use();
+    if (this.unifWobble !== -1) {
+      gl.uniform1f(this.unifWobble, wobble);
+    }
+  }
+
+  setFbmAmp(amp: number) {
+    this.use();
+    if (this.unifFbmAmp !== -1) {
+      gl.uniform1f(this.unifFbmAmp, amp);
+    }
+  }
+
+  setFbmFreq(freq: number) {
+    this.use();
+    if (this.unifFbmFreq !== -1) {
+      gl.uniform1f(this.unifFbmFreq, freq);
+    }
+  }
+
+  setHeat(heat: number) {
+    this.use();
+    if (this.unifHeat !== -1) {
+      gl.uniform1f(this.unifHeat, heat);
     }
   }
 

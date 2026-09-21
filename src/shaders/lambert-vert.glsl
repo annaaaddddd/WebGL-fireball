@@ -19,6 +19,10 @@ uniform mat4 u_ViewProj;    // The matrix that defines the camera's transformati
                             // We've written a static matrix for you to use for HW2,
                             // but in HW3 you'll have to generate one yourself
 uniform float u_Time;
+uniform float u_Speed;    // Global animation speed multiplier
+uniform float u_Wobble;   // Amplitude of the low-frequency sinusoidal layer
+uniform float u_FbmAmp;   // Amplitude of the high-frequency FBM detail layer
+uniform float u_FbmFreq;  // Spatial frequency of the FBM detail layer
 
 in vec4 vs_Pos;             // The array of vertex positions passed to the shader
 
@@ -88,11 +92,9 @@ void main()
 {
     vec3 pos = vs_Pos.xyz;
 
-    float t = u_Time * 0.3;
+    float t = u_Time * u_Speed;
     float lowFreq = sin(1.1 * pos.x + t) * sin(0.5 * pos.y + 1.3 * t) + sin(2.3 * pos.z + 0.7 * t);
-    float fbmAmp = 0.15;
-    float fbmFreq = 5.0;
-    fs_Displacement = 0.3 * lowFreq + fbmAmp * fbm(pos * fbmFreq + vec3(0.0, -t, 0.0)); 
+    fs_Displacement = u_Wobble * lowFreq + u_FbmAmp * fbm(pos * u_FbmFreq + vec3(0.0, -t, 0.0));
     vec4 displacedPos = vs_Pos + vs_Nor * fs_Displacement;
 
     fs_Col = vs_Col;                         // Pass the vertex colors to the fragment shader for interpolation
