@@ -15,6 +15,7 @@ import lambertFragSource from './shaders/lambert-frag.glsl?raw';
 // This will be referred to by dat.GUI's functions that add GUI elements.
 const controls = {
   tesselations: 5,
+  theme: 0,
   'Load Scene': loadScene, // A function pointer, essentially
 };
 
@@ -41,6 +42,7 @@ function main() {
   // Add controls to the gui
   const gui = new DAT.GUI();
   gui.add(controls, 'tesselations', 0, 8).step(1);
+  gui.add(controls, 'theme', { Fire: 0, Ghostfire: 1, Toxic: 2, Cosmic: 3 });
   gui.add(controls, 'Load Scene');
 
   // get canvas and webgl context
@@ -71,6 +73,9 @@ function main() {
   function tick(timeMs: number) {
     const time = timeMs / 1000.0;
     lambert.setTime(time);
+    // dat.GUI dropdowns store their value as a string once the user picks an
+    // option, so coerce back to a number before uploading the uniform.
+    lambert.setTheme(Number(controls.theme));
     camera.update();
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
