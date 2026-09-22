@@ -34,63 +34,19 @@ out vec4 fs_Nor;            // The array of normals that has been transformed by
 out vec4 fs_LightVec;       // The direction in which our virtual light lies, relative to each vertex. This is implicitly passed to the fragment shader.
 out vec4 fs_Col;            // The color of each vertex. This is implicitly passed to the fragment shader.
 out float fs_Displacement;
+out vec4 fs_Pos;            // Un-displaced model-space position, for the fragment
+                            // shader's per-pixel fire texture (kept pre-displacement
+                            // so the texture doesn't jitter with the geometry).
 
 const vec4 lightPos = vec4(5, 5, 3, 1); //The position of our virtual light, which is used to compute the shading of
                                         //the geometry in the fragment shader.
 
-// Hash a 3D position to a deterministic value in [0, 1].
-float random3D(vec3 p) {
-    return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-}
-
-// 3D value noise: random values at the eight lattice corners around p,
-// blended with Perlin's fade curve so the result is smooth.
-float valueNoise3D(vec3 p) {
-    vec3 i = floor(p);
-    vec3 f = fract(p);
-
-    float c000 = random3D(i + vec3(0.0, 0.0, 0.0));
-    float c100 = random3D(i + vec3(1.0, 0.0, 0.0));
-    float c010 = random3D(i + vec3(0.0, 1.0, 0.0));
-    float c110 = random3D(i + vec3(1.0, 1.0, 0.0));
-    float c001 = random3D(i + vec3(0.0, 0.0, 1.0));
-    float c101 = random3D(i + vec3(1.0, 0.0, 1.0));
-    float c011 = random3D(i + vec3(0.0, 1.0, 1.0));
-    float c111 = random3D(i + vec3(1.0, 1.0, 1.0));
-
-    vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
-
-    float x00 = mix(c000, c100, u.x);
-    float x10 = mix(c010, c110, u.x);
-    float x01 = mix(c001, c101, u.x);
-    float x11 = mix(c011, c111, u.x);
-
-    float y0 = mix(x00, x10, u.y);
-    float y1 = mix(x01, x11, u.y);
-
-    return mix(y0, y1, u.z);
-}
-
-// Fractional Brownian motion: five octaves of value noise, each at double
-// the frequency and half the amplitude, so detail appears at several scales.
-float fbm(vec3 p) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    float frequency = 1.0;
-
-    for (int i = 0; i < 5; i++) {
-        value += amplitude * valueNoise3D(p * frequency);
-
-        frequency *= 2.0;
-        amplitude *= 0.5;
-    }
-
-    return value;
-}
+#include "noise.glsl"
 
 void main()
 {
     vec3 pos = vs_Pos.xyz;
+    fs_Pos = vs_Pos;
 
     float t = u_Time * u_Speed;
     float lowFreq = sin(1.1 * pos.x + t) * sin(0.5 * pos.y + 1.3 * t) + sin(2.3 * pos.z + 0.7 * t);

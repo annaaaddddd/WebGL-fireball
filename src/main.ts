@@ -10,12 +10,33 @@ import ShaderProgram, {Shader} from './rendering/gl/ShaderProgram';
 
 import lambertVertSource from './shaders/lambert-vert.glsl?raw';
 import lambertFragSource from './shaders/lambert-frag.glsl?raw';
+import noiseSource from './shaders/noise.glsl?raw';
+import colorSource from './shaders/color.glsl?raw';
+import backgroundVertSource from './shaders/background-vert.glsl?raw';
+import backgroundFragSource from './shaders/background-frag.glsl?raw';
+
+
+// GLSL has no native #include; our shaders are imported as plain strings, so
+// we splice shared helper files in ourselves before compiling. Only known
+// includes are replaced where an unknown one is left in place so the GLSL
+// compiler fails loudly instead of silently.
+const shaderIncludes: [string, string][] = [
+  ['#include "noise.glsl"', noiseSource],
+  ['#include "color.glsl"', colorSource],
+];
+
+function assembleShader(source: string): string {
+  for (const [directive, code] of shaderIncludes) {
+    source = source.replace(directive, code);
+  }
+  return source;
+}
 
 // The art-directed default look; the reset button restores these.
 const defaults = {
   tesselations: 6,
   theme: 0,
-  wobble: 0.3,
+  wobble: 0.1,
   noiseAmount: 0.15,
   noiseScale: 5.0,
   heat: 0.35,
@@ -87,18 +108,25 @@ function main() {
   const camera = new Camera(vec3.fromValues(0, 0, 5), vec3.fromValues(0, 0, 0));
 
   const renderer = new OpenGLRenderer(canvas);
-  renderer.setClearColor(0.2, 0.2, 0.2, 1);
+  renderer.setClearColor(0, 0, 0, 1);
   gl.enable(gl.DEPTH_TEST);
 
   const lambert = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, lambertVertSource),
-    new Shader(gl.FRAGMENT_SHADER, lambertFragSource),
+    new Shader(gl.VERTEX_SHADER, assembleShader(lambertVertSource)),
+    new Shader(gl.FRAGMENT_SHADER, assembleShader(lambertFragSource)),
+  ]);
+
+  const background = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, assembleShader(backgroundVertSource)),
+    new Shader(gl.FRAGMENT_SHADER, assembleShader(backgroundFragSource)),
   ]);
 
   // This function will be called every frame
   function tick(timeMs: number) {
     const time = timeMs / 1000.0;
     lambert.setTime(time);
+    background.setTime(time);
+    background.setAspect(window.innerWidth / window.innerHeight);
     // dat.GUI dropdowns store their value as a string once the user picks an
     // option, so coerce back to a number before uploading the uniform.
     lambert.setTheme(Number(controls.theme));
@@ -117,9 +145,13 @@ function main() {
       icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, prevTesselations);
       icosphere.create();
     }
+    gl.depthMask(false);
+    renderer.render(camera, background, [
+      square,
+    ]);
+    gl.depthMask(true);
     renderer.render(camera, lambert, [
       icosphere,
-      // square,
     ]);
     stats.end();
 

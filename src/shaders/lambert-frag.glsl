@@ -16,46 +16,27 @@ in vec4 fs_Nor;
 in vec4 fs_LightVec;
 in vec4 fs_Col;
 in float fs_Displacement;
+in vec4 fs_Pos;
 
 out vec4 out_Col;
 
-// Toolbox function: bias. b < 0.5 pulls midtones down (concentrates the
-// bright range near t = 1), b > 0.5 pushes them up.
-float bias(float b, float t)
-{
-    return t / ((1.0 / b - 2.0) * (1.0 - t) + 1.0);
-}
-
-// Inigo Quilez cosine palette: a + b * cos(2pi * (c * t + d)).
-// With c = 0.5 the palette sweeps exactly half a period over t in [0, 1],
-// so it runs dark -> bright monotonically instead of wrapping around.
-vec3 cosinePalette(float t, vec3 a, vec3 b, vec3 c, vec3 d)
-{
-    return a + b * cos(6.2831853 * (c * t + d));
-}
-
-// Theme 0: hand-tuned fire gradient. Four color stops blended with
-// smoothstep so each transition's position and width is art-directable.
-vec3 fireGradient(float t)
-{
-    const vec3 smoke  = vec3(0.08, 0.02, 0.02);
-    const vec3 red    = vec3(0.55, 0.05, 0.00);
-    const vec3 orange = vec3(1.00, 0.45, 0.05);
-    const vec3 yellow = vec3(1.00, 0.90, 0.30);
-    const vec3 white  = vec3(1.00, 1.00, 0.95);
-
-    vec3 col = mix(smoke, red, smoothstep(0.00, 0.35, t));
-    col = mix(col, orange, smoothstep(0.35, 0.65, t));
-    col = mix(col, yellow, smoothstep(0.65, 0.85, t));
-    col = mix(col, white,  smoothstep(0.85, 1.00, t));
-    return col;
-}
+#include "noise.glsl"
+#include "color.glsl"
 
 void main()
 {
-    // Normalize displacement (roughly [-0.6, 0.85] out of the vertex shader)
-    // to [0, 1]; smoothstep also clamps anything outside the range.
-    float t = smoothstep(-0.6, 0.85, fs_Displacement);
+    // Geometry contribution: normalized displacement (bumps read as hotter).
+    float shape = smoothstep(-0.6, 0.85, fs_Displacement);
+
+    // Surface fire: domain-warped FBM evaluated per pixel on the un-displaced
+    // model-space position, drifting upward over time. This carries the
+    // "burning" look now, so the silhouette can stay stable.
+    float tt = u_Time * u_Speed;
+    vec3 p = fs_Pos.xyz;
+    float warp = fbm(p * 2.0 + vec3(0.0, -0.5 * tt, 0.0));
+    float fire = fbm(p * 5.0 + vec3(1.5 * warp) + vec3(0.0, -2.0 * tt, 0.0));
+
+    float t = 0.35 * shape + 0.75 * fire;
 
     // Time flicker: a small displacement-phased shimmer so the color animates
     // independently of the geometry. Keeps the frag shader time-driven.
@@ -67,28 +48,5 @@ void main()
     // at the tips instead of washing over the whole surface.
     t = bias(u_Heat, t);
 
-    vec3 col;
-    if (u_Theme == 1) {
-        // Ghostfire: deep blue -> bright cyan
-        col = cosinePalette(t, vec3(0.15, 0.40, 0.65), vec3(0.20, 0.45, 0.35),
-                               vec3(0.5), vec3(0.50, 0.52, 0.45));
-    } else if (u_Theme == 2) {
-        // Toxic: near-black -> acid green
-        col = cosinePalette(t, vec3(0.10, 0.40, 0.15), vec3(0.30, 0.50, 0.20),
-                               vec3(0.5), vec3(0.50, 0.50, 0.55));
-    } else if (u_Theme == 3) {
-        // Cosmic: dark violet -> pink lavender
-        col = cosinePalette(t, vec3(0.35, 0.15, 0.50), vec3(0.45, 0.25, 0.40),
-                               vec3(0.5), vec3(0.48, 0.50, 0.42));
-    } else {
-        col = fireGradient(t);
-    }
-
-    // For the palette themes, layer a brightness ramp on top so every theme
-    // keeps the same dark-body / hot-tips structure as the fire gradient.
-    if (u_Theme != 0) {
-        col *= 0.3 + 0.7 * t;
-    }
-
-    out_Col = vec4(col, 1.0);
+    out_Col = vec4(themeColor(t, u_Theme), 1.0);
 }
