@@ -4,7 +4,7 @@
 // themeColor() so every theme change stays consistent across the scene.
 
 // Toolbox function: Gaussian bell curve. Peaks (= 1) at x = 0 and decays
-// asymptotically — an infinite tail, so a falloff built on it has no visible
+// asymptotically: an infinite tail, so a falloff built on it has no visible
 // edge, unlike smoothstep's hard zero. k controls width (larger = tighter).
 float gaussian(float x, float k)
 {
