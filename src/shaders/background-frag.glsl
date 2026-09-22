@@ -5,12 +5,16 @@ precision highp float;
 
 uniform float u_Time;
 uniform float u_Aspect;
+uniform int u_Theme;   // 0 = hand-tuned fire gradient, 1+ = cosine palettes
+uniform float u_Glow;
+uniform float u_Speed;
 
 in vec2 fs_UV;
 
 out vec4 out_Col;
 
 #include "noise.glsl"
+#include "color.glsl"
 
 // One layer of stars via cell-based scattering: each grid cell hashes out
 // whether it holds a star, where the star sits, and its twinkle phase.
@@ -42,6 +46,14 @@ void main()
     // Two star layers: large sparse + small dense (dimmer, reads as farther)
     col += vec3(0.9, 0.95, 1.0) * starLayer(p, 12.0, 7.0);
     col += vec3(0.7, 0.8, 1.0) * starLayer(p, 30.0, 57.0) * 0.6;
+
+    // Fireball glow: the ball sits at the world origin and the camera orbits
+    // it, so it is centered on screen. Gaussian falloff (softer than
+    // smoothstep), slow pulse, tinted by the current theme's bright end.
+    float d = length(p);
+    float glow = gaussian(d, 3.0);
+    glow *= 0.6 + 0.2 * sin(u_Time * u_Speed * 3.0);
+    col += themeColor(0.75, u_Theme) * glow * u_Glow;
 
     out_Col = vec4(col, 1.0);
 }

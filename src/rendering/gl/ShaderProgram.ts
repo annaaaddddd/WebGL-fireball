@@ -37,6 +37,7 @@ class ShaderProgram {
   unifFbmFreq: WebGLUniformLocation;
   unifHeat: WebGLUniformLocation;
   unifAspect: WebGLUniformLocation;
+  unifGlow: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -64,6 +65,7 @@ class ShaderProgram {
     this.unifFbmFreq    = gl.getUniformLocation(this.prog, "u_FbmFreq");
     this.unifHeat       = gl.getUniformLocation(this.prog, "u_Heat");
     this.unifAspect     = gl.getUniformLocation(this.prog, "u_Aspect");
+    this.unifGlow       = gl.getUniformLocation(this.prog, "u_Glow");
   }
 
   use() {
@@ -154,6 +156,13 @@ class ShaderProgram {
     this.use();
     if (this.unifAspect !== -1) {
       gl.uniform1f(this.unifAspect, aspect);
+    }
+  }
+  
+  setGlow(glow: number) {
+    this.use();
+    if (this.unifGlow !== -1) {
+      gl.uniform1f(this.unifGlow, glow);
     }
   }
 

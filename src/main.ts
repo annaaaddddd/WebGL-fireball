@@ -41,6 +41,7 @@ const defaults = {
   noiseScale: 5.0,
   heat: 0.35,
   speed: 0.3,
+  glow: 1.0,
 };
 
 // Define an object with application parameters and button callbacks
@@ -89,6 +90,9 @@ function main() {
   const motionFolder = gui.addFolder('Motion');
   motionFolder.add(controls, 'speed', 0, 1).name('Speed').listen();
 
+  const backgroundFolder = gui.addFolder('Background');
+  backgroundFolder.add(controls, 'glow', 0, 2).name('Glow Strength').listen();
+
   gui.add(controls, 'tesselations', 0, 8).step(1).name('Mesh Detail').listen();
   gui.add(controls, 'Reset to Default').name('Click to Reset');
 
@@ -127,10 +131,14 @@ function main() {
     lambert.setTime(time);
     background.setTime(time);
     background.setAspect(window.innerWidth / window.innerHeight);
+    background.setTheme(Number(controls.theme));
+    background.setGlow(controls.glow);
     // dat.GUI dropdowns store their value as a string once the user picks an
     // option, so coerce back to a number before uploading the uniform.
     lambert.setTheme(Number(controls.theme));
+    background.setTheme(Number(controls.theme));
     lambert.setSpeed(controls.speed);
+    background.setSpeed(controls.speed);
     lambert.setWobble(controls.wobble);
     lambert.setFbmAmp(controls.noiseAmount);
     lambert.setFbmFreq(controls.noiseScale);

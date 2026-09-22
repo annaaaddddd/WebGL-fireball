@@ -3,6 +3,14 @@
 // the fireball's current theme (e.g. the background glow) should use
 // themeColor() so every theme change stays consistent across the scene.
 
+// Toolbox function: Gaussian bell curve. Peaks (= 1) at x = 0 and decays
+// asymptotically — an infinite tail, so a falloff built on it has no visible
+// edge, unlike smoothstep's hard zero. k controls width (larger = tighter).
+float gaussian(float x, float k)
+{
+    return exp(-k * x * x);
+}
+
 // Toolbox function: bias. b < 0.5 pulls midtones down (concentrates the
 // bright range near t = 1), b > 0.5 pushes them up.
 float bias(float b, float t)
