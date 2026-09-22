@@ -38,9 +38,27 @@ Fragment shader (`src/shaders/lambert-frag.glsl`) is self-emissive, no Lambert t
 
 Artistic design choice: keep the silhouette stable, put the roiling in the fragment shader rather than in heavier geometry noise.
 
+## Procedural background
+
+A second shader program (`src/shaders/background-*.glsl`) draws a fullscreen quad first, depth writes off:
+
+| Element | How |
+|---|---|
+| Base | Deep navy vertical gradient |
+| Nebula haze | FBM with time on the noise's third axis, so it morphs in place instead of sliding |
+| Stars | Two cell-based scattering layers (large/sparse, plus small/dense/dimmer to read as farther); each cell hashes out whether it holds a star, where it sits, and its twinkle phase |
+| Glow | Theme-tinted Gaussian falloff with a slow pulse, scaled by `Glow Strength` |
+| Meteor trail | Wide flare + tight bright core, Gaussian across the axis, exponential fade down it, `smoothstep` onset across the head; hot at the head, cooling toward the tail |
+| Rim fire | Thin Gaussian ring on the silhouette, weighted toward the tail side so flames peel off the ball |
+| Debris | Five hand-placed elongated Gaussians beside the trail, each with a phase-offset flicker |
+
+Trail, rim weighting and debris all live in screen-space `(s, r)` trail coordinates, which is distance along
+the tail axis and perpendicular offset from it, from projecting the pixel onto `TRAIL_DIR` and its
+perpendicular. Reaiming the whole meteor means changing one vector.
+
 ## Themes
 
-Four themes, one shared `themeColor()` (`src/shaders/color.glsl`) — ball, glow, trail, rim fire and
+Four themes, one shared `themeColor()` (`src/shaders/color.glsl`) where ball, glow, trail, rim fire and
 debris all recolor together.
 
 <table>
@@ -66,24 +84,6 @@ debris all recolor together.
 - The other three: Inigo Quilez cosine palettes, custom `c = 0.5` half-period variant, so the palette sweeps monotonically dark → bright over `t` in `[0, 1]`.
 - A brightness ramp on top of the palettes keeps the same dark-body / hot-tips structure as Fire.
 
-## Procedural background
-
-A second shader program (`src/shaders/background-*.glsl`) draws a fullscreen quad first, depth writes off:
-
-| Element | How |
-|---|---|
-| Base | Deep navy vertical gradient |
-| Nebula haze | FBM with time on the noise's third axis, so it morphs in place instead of sliding |
-| Stars | Two cell-based scattering layers (large/sparse, plus small/dense/dimmer to read as farther); each cell hashes out whether it holds a star, where it sits, and its twinkle phase |
-| Glow | Theme-tinted Gaussian falloff with a slow pulse, scaled by `Glow Strength` |
-| Meteor trail | Wide flare + tight bright core, Gaussian across the axis, exponential fade down it, `smoothstep` onset across the head; hot at the head, cooling toward the tail |
-| Rim fire | Thin Gaussian ring on the silhouette, weighted toward the tail side so flames peel off the ball |
-| Debris | Five hand-placed elongated Gaussians beside the trail, each with a phase-offset flicker |
-
-Trail, rim weighting and debris all live in screen-space `(s, r)` trail coordinates — distance along
-the tail axis and perpendicular offset from it, from projecting the pixel onto `TRAIL_DIR` and its
-perpendicular. Reaiming the whole meteor means changing one vector.
-
 ## Controls (dat.GUI)
 
 Controls are accessible at the top right corner of the live demo. They are organized into folders below, plus a `Click to Reset` button restoring the art-directed defaults.
@@ -94,7 +94,7 @@ Controls are accessible at the top right corner of the live demo. They are organ
 | Shape | `Noise Amount` | 0.15 | Amplitude of the FBM detail layer |
 | Shape | `Noise Scale` | 5.0 | Spatial frequency of the FBM detail layer |
 | Appearance | `Theme` | Fire | Fire / Ghostfire / Toxic / Cosmic |
-| Appearance | `Heat` | 0.35 | Bias on the color ramp — hot core size vs. white-hot body |
+| Appearance | `Heat` | 0.35 | Bias on the color ramp: hot core size vs. white-hot body |
 | Motion | `Speed` | 0.30 | Global animation speed, shared by ball and background |
 | Background | `Glow Strength` | 1.0 | Intensity of glow, trail, rim and debris |
 | — | `Mesh Detail` | 6 | Icosphere tessellation level (rebuilds the mesh) |
